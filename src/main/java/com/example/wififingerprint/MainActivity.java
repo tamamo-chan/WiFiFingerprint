@@ -18,9 +18,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -30,7 +32,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity  {
 
     private static final int REQUEST_CODE_PERMISSION = 1;
     String mPermission = Manifest.permission.CHANGE_WIFI_STATE;
@@ -88,6 +90,18 @@ public class MainActivity extends AppCompatActivity {
 
         wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_SCAN_ONLY, this.getLocalClassName());
+        /*EditText myEditText = findViewById(R.id.roomName);
+        myEditText.setOnFocusChangeListener(new View.OnFocusChangeListener(){
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                EditText myEditText = findViewById(R.id.roomName);
+                if (hasFocus) {
+                    myEditText.setHint("");
+                } else {
+                    myEditText.setHint("Enter room");
+                }
+            }
+        });*/
     }
 
     @Override
@@ -143,56 +157,72 @@ public class MainActivity extends AppCompatActivity {
     private int cooldown_time = 3000;
 
     public void handleButton(View view) {
-        Button myButton = findViewById(R.id.scanWifi);
-        myButton.setEnabled(false);
-        myButton.postDelayed(new Runnable() {
-            Button myButton = findViewById(R.id.scanWifi);
-            @Override
-            public void run() {
-                myButton.setEnabled(true);
-            }
-        }, cooldown_time);
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WAKE_LOCK) == PackageManager.PERMISSION_GRANTED) {
-            wifiLock.acquire();
-
-            registerReceiver(wifiScanBroadcastReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 12);
-            }
-
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CHANGE_WIFI_STATE}, 24);
-            }
+        EditText roomName = findViewById(R.id.roomName);
+        if (TextUtils.isEmpty(roomName.getText()) ) {
+            roomName.setError("Room name required.");
         } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WAKE_LOCK}, 44);
+            roomName.setEnabled(false);
+            roomName.postDelayed(new Runnable() {
+                EditText roomName = findViewById(R.id.roomName);
+                @Override
+                public void run() {
+                    roomName.setEnabled(true);
+                }
+            }, cooldown_time);
+
+            writeToFile(roomName.getText().toString(), this);
+            Button myButton = findViewById(R.id.scanWifi);
+            myButton.setEnabled(false);
+            myButton.postDelayed(new Runnable() {
+                Button myButton = findViewById(R.id.scanWifi);
+                @Override
+                public void run() {
+                    myButton.setEnabled(true);
+                }
+            }, cooldown_time);
+
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WAKE_LOCK) == PackageManager.PERMISSION_GRANTED) {
+                wifiLock.acquire();
+
+                registerReceiver(wifiScanBroadcastReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 12);
+                }
+
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CHANGE_WIFI_STATE}, 24);
+                }
+            } else {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WAKE_LOCK}, 44);
+            }
+
+            new CountDownTimer(cooldown_time, 1000) {
+                TextView text = findViewById(R.id.countdown);
+
+                public void onTick(long millisUntilFinished) {
+                    text.setText("seconds remaining: " + millisUntilFinished / 1000);
+                    //here you can have your logic to set text to edittext
+
+                    if (!running) {
+                        return;
+                    }
+
+                    if (!wifiManager.startScan()) {
+                        Log.w(TAG, "Couldn't start Wi-fi scan!");
+                    }
+
+                }
+
+                public void onFinish() {
+                    text.setText("done!");
+                    unregisterReceiver(wifiScanBroadcastReceiver);
+
+                    wifiLock.release();
+                }
+
+            }.start();
         }
 
-        new CountDownTimer(cooldown_time, 1000) {
-            TextView text = findViewById(R.id.countdown);
-
-            public void onTick(long millisUntilFinished) {
-                text.setText("seconds remaining: " + millisUntilFinished / 1000);
-                //here you can have your logic to set text to edittext
-
-                if (!running) {
-                    return;
-                }
-
-                if (!wifiManager.startScan()) {
-                    Log.w(TAG, "Couldn't start Wi-fi scan!");
-                }
-
-            }
-
-            public void onFinish() {
-                text.setText("done!");
-                unregisterReceiver(wifiScanBroadcastReceiver);
-
-                wifiLock.release();
-            }
-
-        }.start();
     }
 }

@@ -19,7 +19,7 @@
         android:layout_height="wrap_content"
         android:layout_above="@id/scanWifi"
         android:layout_centerInParent="true"
-        android:text="Enter room" />
+        android:hint="Enter room" />
 
     <TextView
         android:id="@+id/countdown"
