@@ -13,6 +13,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.icu.util.Calendar;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -131,9 +132,13 @@ public class MainActivity extends AppCompatActivity  {
             }
 
             List<ScanResult> scanResults = wifiManager.getScanResults();
+            EditText roomName = findViewById(R.id.roomName);
 
             for (ScanResult scan : scanResults) {
-                writeToFile(scan.toString(), getBaseContext());
+
+                    String s = roomName.getText().toString() + "," +scan.timestamp + "," + scan.SSID + "," + scan.BSSID + ","+ scan.level;
+                    writeToFile(s, getBaseContext());
+
             }
         }
 
@@ -170,7 +175,7 @@ public class MainActivity extends AppCompatActivity  {
                 }
             }, cooldown_time);
 
-            writeToFile(roomName.getText().toString(), this);
+            //writeToFile(roomName.getText().toString(), this);
             Button myButton = findViewById(R.id.scanWifi);
             myButton.setEnabled(false);
             myButton.postDelayed(new Runnable() {
